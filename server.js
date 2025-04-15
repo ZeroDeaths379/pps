@@ -1,52 +1,35 @@
 const express = require('express');
+const app = express();
 const fs = require('fs');
-const bodyParser = require('body-parser');
 const path = require('path');
 
-const app = express();
-const PORT = 3000;
-
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(express.static('public'));
-
-let fileCount = 0;
-
-app.post('/save', (req, res) => {
-  let rawName = req.body.filename.trim();
-
-  // Remove .c if user accidentally types it
-  if (rawName.endsWith('.c')) {
-    rawName = rawName.slice(0, -2);
-  }
-
-  const finalFilename = `${rawName}.c`;
-  const filePath = path.join(__dirname, 'files', finalFilename);
-  fs.writeFileSync(filePath, req.body.code);
-
-  res.send(`
-    <p>Saved as ${finalFilename}</p>
-  `);
-});
-
-
-
-app.get('/download/:filename', (req, res) => {
-  const filePath = path.join(__dirname, 'files', req.params.filename);
-  res.download(filePath);
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 app.get('/files', (req, res) => {
   const filesDir = path.join(__dirname, 'files');
   fs.readdir(filesDir, (err, files) => {
     if (err) return res.status(500).send('Error reading files');
-    
-    // Only return .c files
     const cFiles = files.filter(file => file.endsWith('.c'));
     res.json(cFiles);
   });
 });
+
+app.post('/save', (req, res) => {
+  const filename = req.body.filename.trim();
+  if (filename.endsWith('.c')) filename = filename.slice(0, -2);
+  const finalFilename = `${filename}.c`;
+  const filePath = path.join(__dirname, 'files', finalFilename);
+  fs.writeFileSync(filePath, req.body.code);
+  res.send(`<p>Saved as ${finalFilename}</p><a href="/download/${finalFilename}">Download</a>`);
+});
+app.get('/download/:filename', (req, res) => {
+  const filePath = path.join(__dirname, 'files', req.params.filename);
+  res.download(filePath);
+});
+app.listen(3000, () => {
+  console.log('App running on port 3000');
+});
+
+
 
