@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>C File Creator</title>
+</head>
+<body>
+  <h1>Create a C File</h1>
+  <form id="codeForm">
+    <label>Filename (without .c):</label><br>
+    <input type="text" id="filename" name="filename" placeholder="e.g., hello" required><br><br>
+  
+    <label>Code:</label><br>
+    <textarea id="code" name="code" rows="10" cols="30" required></textarea><br>
+  
+    <button type="submit">Save</button>
+  </form>
+  
+  <div id="result"></div>
+  
+  <hr>
+<h2>Saved C Files:</h2>
+<ul id="fileList">Loading...</ul>
+
+<script>
+  fetch('/files')
+    .then(res => res.json())
+    .then(files => {
+      const fileList = document.getElementById('fileList');
+      fileList.innerHTML = '';
+
+      files.forEach(file => {
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="/download/${file}">${file}</a>`;
+        fileList.appendChild(li);
+      });
+
+      if (files.length === 0) {
+        fileList.innerHTML = '<li>No files found</li>';
+      }
+    })
+    .catch(err => {
+      document.getElementById('fileList').innerHTML = '<li>Error loading files</li>';
+    });
+  const form = document.getElementById('codeForm');
+  const resultDiv = document.getElementById('result');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault(); // Prevent page reload
+
+    const filename = document.getElementById('filename').value;
+    const code = document.getElementById('code').value;
+
+    const response = await fetch('/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        filename,
+        code
+      })
+    });
+
+    const responseText = await response.text();
+    resultDiv.innerHTML = responseText;
+
+    // Clear the form
+    form.reset();
+
+    // Refresh file list
+    loadFileList();
+  });
+
+  // Load file list (reusable for refresh)
+  async function loadFileList() {
+    const res = await fetch('/files');
+    const files = await res.json();
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+
+    files.forEach(file => {
+      const li = document.createElement('li');
+      li.innerHTML = `<a href="/download/${file}">${file}</a>`;
+      fileList.appendChild(li);
+    });
+
+    if (files.length === 0) {
+      fileList.innerHTML = '<li>No files found</li>';
+    }
+  }
+
+  // Load list on page load
+  loadFileList();
+</script>
+
+</body>
+</html>
